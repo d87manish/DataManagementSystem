@@ -36,7 +36,7 @@ popd
 
 set "PUBLISH_DIR=%ROOT%\publish\app"
 set "PROJECT=%ROOT%\DataManagementSystem\DataManagementSystem.csproj"
-set "ISS_SCRIPT=%ROOT%\Installer\DMS_Setup.iss"
+set "ISS_SCRIPT=%ROOT%\load\DMS_Setup.iss"
 
 echo.
 echo ============================================================
@@ -75,20 +75,17 @@ echo   Publish succeeded. Files in: %PUBLISH_DIR%
 :: ---- Step 3: Locate ISCC.exe ----
 if not "%~1"=="" (
     set "ISCC=%~1"
+) else if exist "%ROOT%\tools\innosetup\ISCC.exe" (
+    set "ISCC=%ROOT%\tools\innosetup\ISCC.exe"
+) else if exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" (
+    set "ISCC=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+) else if exist "C:\Program Files\Inno Setup 6\ISCC.exe" (
+    set "ISCC=C:\Program Files\Inno Setup 6\ISCC.exe"
 ) else (
-    :: Try standard install locations (Inno Setup 6)
-    if exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" (
-        set "ISCC=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-    ) else if exist "C:\Program Files\Inno Setup 6\ISCC.exe" (
-        set "ISCC=C:\Program Files\Inno Setup 6\ISCC.exe"
-    ) else (
-        echo.
-        echo ERROR: Inno Setup 6 not found.
-        echo   Install from: https://jrsoftware.org/isdl.php
-        echo   Or pass the ISCC.exe path as an argument:
-        echo     build.bat "C:\path\to\ISCC.exe"
-        exit /b 1
-    )
+    echo.
+    echo ERROR: Inno Setup compiler not found.
+    echo   Bundled copy expected at: %ROOT%\tools\innosetup\ISCC.exe
+    exit /b 1
 )
 
 :: ---- Step 4: Compile installer ----
@@ -109,7 +106,7 @@ if %ERRORLEVEL% neq 0 (
 echo.
 echo ============================================================
 echo  SUCCESS
-echo  Installer: %ROOT%\Installer\Output\DMS_Setup_1.0.0.exe
+echo  Installer: %ROOT%\load\Output\DMS_Setup_1.0.0.exe
 echo ============================================================
 echo.
 

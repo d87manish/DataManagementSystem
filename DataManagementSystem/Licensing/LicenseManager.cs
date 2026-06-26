@@ -16,13 +16,13 @@ public class LicenseManager
     internal const string PublicKeyPem =
         """
         -----BEGIN PUBLIC KEY-----
-        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1kqRKg55tdmNbCZ80Kwu
-        BjKq0J2fRnrXLO1gz2y/4K20oIeWGzsADUugQ8Vu2JDWBBTx+PWKPWVjiZibEUzN
-        /D/hs8wywfjlDStOSiPuOjVUl0XjC/TFpRUrFgIN6wAsm4pIg0RC37qDrPXujI2w
-        3MTOQbgJcLOibFIJtEaraFf4AYJBF4EWjHF7lE/ykkjXk67Pk5yk2z4El4BmQjp6
-        P4HooliGufAgNrZBO8c//oplZCwRvWBn9Yp1g71NfvXxxapL+5ziXJRA+5iiWMcd
-        q/niXD9RmMCYGONHsMM6sgP9QSjC2fX6EX/vuut0YdZRzRir+Cq7gHghTKDB+iGB
-        oQIDAQAB
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA+f1gQK24Xjz1M5bu/4Tl
+        99+3emng1pPoy1Vrlo9YSvsLFnOGg7sYeKghxdKVg1W5ls8nmpa61B3GyfMuUl+l
+        p3gULBGf4US7/u6P/EoUc48TLiHpIppQd9io43XYp+2JsZvWLqN1N+jEfo4TUVUY
+        NVq5pNxaf5EUetHToNONXQNO1njq79H0n10kdaP2VgHNoVn6RLQ35OWbY1aidxe6
+        TTXEjEBq6pT4iTgl6tMPtPr8cC+o0M+oEWJb4Hs+mr9kjfj4xw/A402zuxpPAaWe
+        g1u6btzxiwJgE6MrM81BMPNZ4K0C+k9U/+K4Xpzgjj39aGrCIRxQG65SCuyfJeGT
+        CQIDAQAB
         -----END PUBLIC KEY-----
         """;
 

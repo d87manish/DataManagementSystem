@@ -1,29 +1,26 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    One-click DMS release generator.
-    Generates a unique license key, bakes it into Setup.exe so the
-    installer activates automatically on any machine, and packages
-    everything into a timestamped Releases/ folder.
+    DMS release builder.
+    Builds the app + installer and packages Setup.exe, ReleaseNotes.txt,
+    ReleaseInfo.txt, and HowToActivate.txt into a timestamped Releases/ folder.
+
+    NOTE: This script does NOT generate a license key. Licenses are now
+    locked to the customer's machine. After the customer installs and reads
+    their Machine ID off the activation screen, issue a key with:
+
+        .\IssueLicense.ps1 -MachineId XXXX-XXXX-XXXX-XXXX -Client "Name"
 
 .PARAMETER Version
     Version number embedded in the release folder name (default: 1.0.0).
 
-.PARAMETER Client
-    Client name recorded in the license (default: Customer).
-
-.PARAMETER LicenseDays
-    Number of days the license is valid (default: 365).
-
-.PARAMETER PrivKeyPath
-    Path to your RSA private key PEM file.
-    Default: $HOME\braentech-keys\private.pem
+.PARAMETER ReleaseNotes
+    Optional release notes text to write into ReleaseNotes.txt.
+    If omitted, the script prompts interactively (leave blank to skip).
 #>
 param (
-    [string] $Version     = '1.0.0',
-    [string] $Client      = 'Customer',
-    [int]    $LicenseDays = 365,
-    [string] $PrivKeyPath = (Join-Path $env:USERPROFILE 'braentech-keys\private.pem')
+    [string] $Version      = '1.0.0',
+    [string] $ReleaseNotes = ''
 )
 
 Set-StrictMode -Version Latest
@@ -32,9 +29,12 @@ $ErrorActionPreference = 'Stop'
 # ── Paths ─────────────────────────────────────────────────────────────────────
 $Root        = $PSScriptRoot
 $AppProject  = Join-Path $Root 'DataManagementSystem\DataManagementSystem.csproj'
-$LicProject  = Join-Path $Root 'DataManagementSystem.LicenseGenerator\DataManagementSystem.LicenseGenerator.csproj'
 $IssFile     = Join-Path $Root 'load\DMS_Setup.iss'
-$ISCC        = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+$ISCC        = if (Test-Path (Join-Path $Root 'tools\innosetup\ISCC.exe')) {
+                   Join-Path $Root 'tools\innosetup\ISCC.exe'
+               } else {
+                   'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+               }
 $PublishDir  = Join-Path $Root 'publish\app'
 $InstallerOut= Join-Path $Root 'load\Output'
 $ReleasesDir = Join-Path $Root 'Releases'
@@ -58,56 +58,16 @@ function Fail([string]$Msg) {
 # ─────────────────────────────────────────────────────────────────────────────
 Step 'Preflight checks'
 
-if (-not (Test-Path $PrivKeyPath))  { Fail "Private key not found: $PrivKeyPath" }
 if (-not (Test-Path $ISCC))         { Fail "Inno Setup not found: $ISCC" }
 if (-not (Test-Path $AppProject))   { Fail "App project not found: $AppProject" }
-if (-not (Test-Path $LicProject))   { Fail "LicenseGenerator project not found: $LicProject" }
 if (-not (Test-Path $IssFile))      { Fail "Installer script not found: $IssFile" }
 
-Write-Host '  Private key   : OK' -ForegroundColor Green
 Write-Host '  Inno Setup    : OK' -ForegroundColor Green
 Write-Host '  App project   : OK' -ForegroundColor Green
-Write-Host '  LicGenerator  : OK' -ForegroundColor Green
 Write-Host '  Installer ISS : OK' -ForegroundColor Green
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2. GENERATE LICENSE KEY (before building installer so it can be embedded)
-# ─────────────────────────────────────────────────────────────────────────────
-Step 'Generating unique license key (machine wildcard, valid on any device)'
-
-# Build LicenseGenerator first
-& dotnet build $LicProject -c Release --nologo -v q
-if ($LASTEXITCODE -ne 0) { Fail "LicenseGenerator build failed (exit $LASTEXITCODE)." }
-
-$licArgs = @(
-    'run', '--project', $LicProject,
-    '--no-build',
-    '--',
-    '--create',
-    '--machine', '*',
-    '--client',  $Client,
-    '--project', 'DMS',
-    '--days',    $LicenseDays,
-    '--privkey', $PrivKeyPath
-)
-
-$licOutput = & dotnet @licArgs 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Write-Host $licOutput
-    Fail "LicenseGenerator failed (exit $LASTEXITCODE)."
-}
-
-$LicenseKey = ($licOutput | Where-Object { $_ -match '^V1\.' } | Select-Object -First 1)
-if (-not $LicenseKey) {
-    Write-Host $licOutput
-    Fail 'Could not extract license key from LicenseGenerator output.'
-}
-$LicenseKey = $LicenseKey.Trim()
-Write-Host "  Key generated successfully." -ForegroundColor Green
-Write-Host "  $($LicenseKey.Substring(0,30))..." -ForegroundColor DarkGray
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. CLEAN PREVIOUS PUBLISH
+# 2. CLEAN PREVIOUS PUBLISH
 # ─────────────────────────────────────────────────────────────────────────────
 Step 'Cleaning previous publish output'
 
@@ -117,7 +77,7 @@ if (Test-Path $PublishDir) {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4. PUBLISH APPLICATION
+# 3. PUBLISH APPLICATION
 # ─────────────────────────────────────────────────────────────────────────────
 Step 'Publishing application (Release, win-x64, self-contained)'
 
@@ -138,7 +98,7 @@ if (-not (Test-Path $AppExe)) { Fail "Published exe not found at: $AppExe" }
 Write-Host "  Published to: $PublishDir" -ForegroundColor Green
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 5. BUILD INSTALLER (with license key baked in via /DLICENSE_KEY=...)
+# 4. BUILD INSTALLER
 # ─────────────────────────────────────────────────────────────────────────────
 Step 'Building installer with Inno Setup'
 
@@ -153,7 +113,7 @@ if (-not $SetupExe) { Fail "No installer .exe found in $InstallerOut after build
 Write-Host "  Installer built: $($SetupExe.Name)" -ForegroundColor Green
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 6. COMPUTE SETUP.EXE SHA-256
+# 5. COMPUTE SETUP.EXE SHA-256
 # ─────────────────────────────────────────────────────────────────────────────
 Step 'Computing SHA-256 of installer'
 
@@ -161,7 +121,7 @@ $SetupHash = (Get-FileHash -Path $SetupExe.FullName -Algorithm SHA256).Hash.ToLo
 Write-Host "  SHA256: $SetupHash" -ForegroundColor DarkGray
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 7. ASSEMBLE RELEASE FOLDER
+# 6. ASSEMBLE RELEASE FOLDER
 # ─────────────────────────────────────────────────────────────────────────────
 Step "Creating release folder: $ReleaseDir"
 
@@ -173,22 +133,11 @@ Copy-Item $SetupExe.FullName (Join-Path $ReleaseDir 'Setup.exe')
 # UTF-8 without BOM
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
-# LicenseKey.txt - send this to the customer alongside Setup.exe
-[System.IO.File]::WriteAllText(
-    (Join-Path $ReleaseDir 'LicenseKey.txt'),
-    $LicenseKey,
-    $utf8NoBom
-)
-
 # ReleaseInfo.txt
 $InfoLines = @(
     "Release ID   : $ReleaseId",
     "Version      : $Version",
     "Build date   : $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') UTC",
-    "Client       : $Client",
-    "License days : $LicenseDays",
-    "",
-    "License key  : $LicenseKey",
     "",
     "Setup.exe SHA256 : $SetupHash"
 )
@@ -198,12 +147,68 @@ $InfoLines = @(
     $utf8NoBom
 )
 
-Write-Host '  Setup.exe       : copied' -ForegroundColor Green
-Write-Host '  LicenseKey.txt  : written' -ForegroundColor Green
-Write-Host '  ReleaseInfo.txt : written' -ForegroundColor Green
+# ReleaseNotes.txt
+if ($ReleaseNotes) {
+    $NotesText = $ReleaseNotes
+} else {
+    Write-Host ''
+    Write-Host '  Enter release notes (leave blank to skip, Ctrl+Z then Enter when done):' -ForegroundColor Cyan
+    $lines = @()
+    while ($true) {
+        $line = Read-Host
+        if ($null -eq $line) { break }
+        $lines += $line
+    }
+    $NotesText = $lines -join "`n"
+}
+
+$NotesContent = "DMS v$Version - Release Notes`n" +
+                "Released: $(Get-Date -Format 'yyyy-MM-dd')`n" +
+                "-" * 50 + "`n" +
+                $(if ($NotesText.Trim()) { $NotesText.Trim() } else { '(no release notes provided)' })
+[System.IO.File]::WriteAllText(
+    (Join-Path $ReleaseDir 'ReleaseNotes.txt'),
+    $NotesContent,
+    $utf8NoBom
+)
+
+# HowToActivate.txt - ship this to the customer alongside Setup.exe
+$ActivateText = @"
+DATA MANAGEMENT SYSTEM - ACTIVATION INSTRUCTIONS
+==================================================
+
+Your license is locked to ONE computer. Follow these steps:
+
+  1. Run Setup.exe and install the application.
+
+  2. Launch Data Management System. On first launch it shows a
+     "License Activation" window with your MACHINE ID, e.g.
+
+         Machine ID:  A1B2-C3D4-E5F6-7890
+
+  3. Click "Copy Machine ID" and send that ID to Braentech
+     (email it to your supplier).
+
+  4. Braentech sends back your personal license key.
+
+  5. Paste the key into the activation window and click "Activate".
+
+The key only works on the machine whose Machine ID you sent.
+It cannot be reused on another computer.
+"@
+[System.IO.File]::WriteAllText(
+    (Join-Path $ReleaseDir 'HowToActivate.txt'),
+    $ActivateText,
+    $utf8NoBom
+)
+
+Write-Host '  Setup.exe        : copied'  -ForegroundColor Green
+Write-Host '  ReleaseInfo.txt  : written' -ForegroundColor Green
+Write-Host '  ReleaseNotes.txt : written' -ForegroundColor Green
+Write-Host '  HowToActivate.txt: written' -ForegroundColor Green
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 8. SUCCESS SUMMARY
+# 7. SUCCESS SUMMARY
 # ─────────────────────────────────────────────────────────────────────────────
 $sep = '=' * 70
 Write-Host ''
@@ -214,12 +219,11 @@ Write-Host "  Release folder : $ReleaseDir"
 Write-Host "  Installer      : Setup.exe ($([math]::Round($SetupExe.Length / 1MB, 1)) MB)"
 Write-Host "  SHA256         : $SetupHash"
 Write-Host ''
-Write-Host '  License key (send to customer):' -ForegroundColor Cyan
-Write-Host "  $LicenseKey" -ForegroundColor Yellow
-Write-Host ''
-Write-Host '  Customer instructions:' -ForegroundColor Cyan
-Write-Host '    1. Send the customer Setup.exe AND LicenseKey.txt.'
-Write-Host '    2. Customer runs Setup.exe to install.'
-Write-Host '    3. On first launch the app shows a License Activation window.'
-Write-Host '    4. Customer pastes the key from LicenseKey.txt and clicks Activate.'
+Write-Host '  Next steps (per-machine licensing):' -ForegroundColor Cyan
+Write-Host '    1. Send the customer Setup.exe AND HowToActivate.txt.'
+Write-Host '    2. Customer installs, launches, and sends you their Machine ID.'
+Write-Host '    3. You issue a locked key:' -ForegroundColor Cyan
+Write-Host '         .\IssueLicense.ps1 -MachineId XXXX-XXXX-XXXX-XXXX -Client "Name"' -ForegroundColor Yellow
+Write-Host '    4. Send the customer the generated LicenseKey.txt.'
+Write-Host '    5. Customer pastes the key and clicks Activate.'
 Write-Host $sep -ForegroundColor Yellow
