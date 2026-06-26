@@ -6,15 +6,11 @@
 ;           CreateRelease.ps1  (full automated release)
 ;  Output:  load\Output\DMS_Setup_1.0.0.exe
 ;
-;  License key is embedded at compile time by CreateRelease.ps1
-;  via /DLICENSE_KEY=V1.xxx... and activated automatically
-;  during installation. No manual key entry required.
+;  No installer passkey. Installs files only.
+;  On first launch the app shows a License Activation window —
+;  the user pastes the key from LicenseKey.txt supplied with
+;  the release package.
 ; ============================================================
-
-; Default empty key — overridden by CreateRelease.ps1 at compile time
-#ifndef LICENSE_KEY
-  #define LICENSE_KEY ""
-#endif
 
 #define AppName        "Data Management System"
 #define AppVersion     "1.0.0"
@@ -118,22 +114,15 @@ Filename: "{app}\{#AppExeName}"; \
   Flags: nowait postinstall skipifsilent
 
 ; ══════════════════════════════════════════════════════════════════════════════
-;  PASCAL SCRIPT
-;  1. Seeds appsettings.json to ProgramData on first install.
-;  2. Auto-activates the license key embedded by CreateRelease.ps1.
+;  PASCAL SCRIPT — seeds appsettings.json on first install only
 ; ══════════════════════════════════════════════════════════════════════════════
 [Code]
 procedure CurStepChanged(CurStep: TSetupStep);
 var
-  PD         : String;
-  AD         : String;
-  LicKey     : String;
-  ExePath    : String;
-  ResultCode : Integer;
+  PD : String;
+  AD : String;
 begin
   if CurStep <> ssPostInstall then Exit;
-
-  // ── Seed appsettings.json (first install only) ────────────────────────────
   PD := ExpandConstant('{commonappdata}\Braentech\DMS\appsettings.json');
   AD := ExpandConstant('{app}\appsettings.json');
   if not FileExists(PD) then
@@ -144,27 +133,6 @@ begin
       Log('WARNING: could not seed appsettings.json.');
   end else
     Log('appsettings.json already in ProgramData; preserved.');
-
-  // ── Auto-activate embedded license key ───────────────────────────────────
-  LicKey  := '{#LICENSE_KEY}';
-  ExePath := ExpandConstant('{app}\{#AppExeName}');
-
-  if (LicKey = '') or (not FileExists(ExePath)) then
-  begin
-    Log('No license key embedded — skipping auto-activation.');
-    Exit;
-  end;
-
-  Log('Activating license...');
-  if Exec(ExePath, '--activate "' + LicKey + '"',
-          '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-  begin
-    if ResultCode = 0 then
-      Log('License activated successfully.')
-    else
-      Log('WARNING: Activation returned code ' + IntToStr(ResultCode) + '.');
-  end else
-    Log('WARNING: Could not launch activation process.');
 end;
 
 

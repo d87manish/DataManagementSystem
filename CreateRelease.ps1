@@ -140,10 +140,9 @@ Write-Host "  Published to: $PublishDir" -ForegroundColor Green
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. BUILD INSTALLER (with license key baked in via /DLICENSE_KEY=...)
 # ─────────────────────────────────────────────────────────────────────────────
-Step 'Building installer with license key embedded'
+Step 'Building installer with Inno Setup'
 
-$licenseDefine = "/DLICENSE_KEY=$LicenseKey"
-& $ISCC '/Q' $licenseDefine $IssFile
+& $ISCC '/Q' $IssFile
 if ($LASTEXITCODE -ne 0) { Fail "ISCC.exe failed (exit $LASTEXITCODE)." }
 
 $SetupExe = Get-ChildItem -Path $InstallerOut -Filter '*.exe' |
@@ -168,13 +167,13 @@ Step "Creating release folder: $ReleaseDir"
 
 New-Item -ItemType Directory -Force -Path $ReleaseDir | Out-Null
 
-# Setup.exe (has license key baked in - activates automatically on install)
+# Setup.exe
 Copy-Item $SetupExe.FullName (Join-Path $ReleaseDir 'Setup.exe')
 
 # UTF-8 without BOM
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
-# LicenseKey.txt - developer record only (customer does not need this file)
+# LicenseKey.txt - send this to the customer alongside Setup.exe
 [System.IO.File]::WriteAllText(
     (Join-Path $ReleaseDir 'LicenseKey.txt'),
     $LicenseKey,
@@ -190,7 +189,6 @@ $InfoLines = @(
     "License days : $LicenseDays",
     "",
     "License key  : $LicenseKey",
-    "(Key is embedded in Setup.exe - auto-activates on install)",
     "",
     "Setup.exe SHA256 : $SetupHash"
 )
@@ -201,7 +199,7 @@ $InfoLines = @(
 )
 
 Write-Host '  Setup.exe       : copied' -ForegroundColor Green
-Write-Host '  LicenseKey.txt  : written (developer record)' -ForegroundColor Green
+Write-Host '  LicenseKey.txt  : written' -ForegroundColor Green
 Write-Host '  ReleaseInfo.txt : written' -ForegroundColor Green
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -216,11 +214,12 @@ Write-Host "  Release folder : $ReleaseDir"
 Write-Host "  Installer      : Setup.exe ($([math]::Round($SetupExe.Length / 1MB, 1)) MB)"
 Write-Host "  SHA256         : $SetupHash"
 Write-Host ''
-Write-Host '  License key (embedded in Setup.exe):' -ForegroundColor Cyan
+Write-Host '  License key (send to customer):' -ForegroundColor Cyan
 Write-Host "  $LicenseKey" -ForegroundColor Yellow
 Write-Host ''
-Write-Host '  What to send the customer:' -ForegroundColor Cyan
-Write-Host '    Setup.exe only.'
-Write-Host '    The license activates automatically during installation.'
-Write-Host '    No key entry required.'
+Write-Host '  Customer instructions:' -ForegroundColor Cyan
+Write-Host '    1. Send the customer Setup.exe AND LicenseKey.txt.'
+Write-Host '    2. Customer runs Setup.exe to install.'
+Write-Host '    3. On first launch the app shows a License Activation window.'
+Write-Host '    4. Customer pastes the key from LicenseKey.txt and clicks Activate.'
 Write-Host $sep -ForegroundColor Yellow
