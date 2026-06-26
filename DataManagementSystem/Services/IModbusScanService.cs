@@ -6,7 +6,7 @@ public interface IModbusScanService : IDisposable
     bool Connect();
     void Disconnect();
 
-    event Action<string, string>? DataReceived;  // (serialNumber, modelNumber)
+    event Action<string, string, string>? DataReceived;  // (captureDate ddMMyyyy, serialNumber, modelNumber)
 
     void StartPolling(int intervalMs = 500);
     void StopPolling();

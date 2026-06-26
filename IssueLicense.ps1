@@ -45,6 +45,19 @@ $LicProject = Join-Path $Root 'DataManagementSystem.LicenseGenerator\DataManagem
 function Step([string]$Msg) { Write-Host "`n>>> $Msg" -ForegroundColor Cyan }
 function Fail([string]$Msg) { Write-Host "`n[FAILED] $Msg" -ForegroundColor Red; exit 1 }
 
+# ── Check .NET SDK ────────────────────────────────────────────────────────────
+Step 'Checking .NET 10 SDK'
+$dotnetCmd = Get-Command dotnet -ErrorAction SilentlyContinue
+if ($dotnetCmd) {
+    $sdkVersion = dotnet --version 2>$null
+    Write-Host "  .NET SDK found: $sdkVersion" -ForegroundColor Green
+} else {
+    Write-Host '  .NET 10 SDK not found on this machine.' -ForegroundColor Yellow
+    Write-Host '  Opening download page in your browser...' -ForegroundColor Yellow
+    Start-Process 'https://dotnet.microsoft.com/download/dotnet/10.0'
+    Fail 'Install .NET 10 SDK, then re-run this script.'
+}
+
 # ── Validate inputs ──────────────────────────────────────────────────────────
 Step 'Validating inputs'
 
@@ -55,7 +68,13 @@ if ($MachineId -eq '*') {
 if ($MachineId -notmatch '^[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$') {
     Fail "Machine ID must look like XXXX-XXXX-XXXX-XXXX (hex). Got: $MachineId"
 }
-if (-not (Test-Path $PrivKeyPath)) { Fail "Private key not found: $PrivKeyPath" }
+if (-not (Test-Path $PrivKeyPath)) {
+    Fail ("Private key not found: $PrivKeyPath`n" +
+          "  This file is never committed to the repo.`n" +
+          "  Obtain private.pem from a team member and place it at that path,`n" +
+          "  or pass -PrivKeyPath 'C:\path\to\private.pem' to specify a custom location.`n" +
+          "  See DEVELOPER_GUIDE.md section 2b for details.")
+}
 if (-not (Test-Path $LicProject))  { Fail "LicenseGenerator project not found: $LicProject" }
 
 Write-Host "  Machine ID  : $MachineId" -ForegroundColor Green
@@ -71,6 +90,7 @@ if ($LASTEXITCODE -ne 0) { Fail "LicenseGenerator build failed (exit $LASTEXITCO
 
 $licArgs = @(
     'run', '--project', $LicProject,
+    '-c', 'Release',
     '--no-build',
     '--',
     '--create',
