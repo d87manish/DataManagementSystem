@@ -23,20 +23,21 @@
 
             <!-- Header -->
             <Border Grid.Row="0" Background="{StaticResource BrandGradient}" Padding="24,16">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets" FontSize="20"
-                               Foreground="White" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <StackPanel>
-                        <TextBlock Text="License Activation" FontSize="16" FontWeight="SemiBold"
-                                   Foreground="White" FontFamily="Segoe UI"/>
-                        <TextBlock Text="Data Management System" FontSize="12"
-                                   Foreground="#99FFFFFF" FontFamily="Segoe UI"/>
+                <Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                   Foreground="White" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                        <StackPanel>
+                            <TextBlock Text="License Activation" FontSize="16" FontWeight="SemiBold"
+                                       Foreground="White" FontFamily="Segoe UI"/>
+                            <TextBlock Text="Data Management System" FontSize="12"
+                                       Foreground="#99FFFFFF" FontFamily="Segoe UI"/>
+                        </StackPanel>
                     </StackPanel>
-
                     <Button Content="&#xE8BB;" Style="{StaticResource CloseWindowButton}"
-                            HorizontalAlignment="Right" Margin="auto,0,0,0"
+                            HorizontalAlignment="Right" VerticalAlignment="Center"
                             Click="Close_Click"/>
-                </StackPanel>
+                </Grid>
             </Border>
 
             <!-- Body -->
