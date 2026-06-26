@@ -1,0 +1,21 @@
+# Build outputs
+bin/
+obj/
+publish/
+
+# Installer output (binary, not source)
+Installer/Output/
+
+# RSA private key — NEVER commit
+*.pem
+braentech-keys/
+
+# Runtime data (written by app, not source)
+*.db
+*.lic
+*.log
+
+# IDE
+.vs/
+*.user
+*.suo
