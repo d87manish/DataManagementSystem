@@ -90,6 +90,7 @@ if ($LASTEXITCODE -ne 0) { Fail "LicenseGenerator build failed (exit $LASTEXITCO
 
 $licArgs = @(
     'run', '--project', $LicProject,
+    '-c', 'Release',
     '--no-build',
     '--',
     '--create',
