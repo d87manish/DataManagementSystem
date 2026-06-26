@@ -15,7 +15,7 @@ public class SimulatedModbusScanService : IModbusScanService
     private int                              _counter;
 
     public bool IsConnected { get; private set; }
-    public event Action<string, string>? DataReceived;
+    public event Action<string, string, string>? DataReceived;
 
     public SimulatedModbusScanService(SimulationSettings settings, DataCaptureRepository repo)
     {
@@ -53,8 +53,9 @@ public class SimulatedModbusScanService : IModbusScanService
             _counter++;
             var serial = $"SN{DateTime.Now:ddMMyy}{_counter:D4}";
             var model  = Models[Rng.Next(Models.Length)];
-            Logger.LogInfo($"SimulatedModbus: serial={serial} model={model}", "SimulatedModbusScanService");
-            DataReceived?.Invoke(serial, model);
+            var captureDate = DateTime.Now.ToString("ddMMyyyy");
+            Logger.LogInfo($"SimulatedModbus: date={captureDate} serial={serial} model={model}", "SimulatedModbusScanService");
+            DataReceived?.Invoke(captureDate, serial, model);
         };
         _timer.Start();
     }

@@ -208,9 +208,8 @@ public partial class App : Application
           "Backup":   { "IntervalHours": 4, "RetainCount": 7 },
           "Modbus": {
             "IpAddress": "192.168.1.1", "Port": 502,
-            "SlaveAddress": 1, "TriggerRegister": 100,
-            "SerialNumberRegister": 101, "SerialNumberRegisters": 8,
-            "ModelNumberRegister": 109, "ModelNumberRegisters": 4,
+            "SlaveAddress": 1, "DataBlockRegister": 10,
+            "DateLength": 6, "SerialLength": 5, "ModelLength": 6,
             "PollIntervalMs": 500, "ConnectTimeoutMs": 3000
           },
           "ProjectProfile": { "ProjectCode": "DMS", "ProjectName": "Data Management System" }

@@ -81,10 +81,8 @@ public class DataCaptureViewModel : ViewModelBase
         await Task.CompletedTask;
     }
 
-    private async void OnDataReceived(string serialNumber, string modelNumber)
+    private async void OnDataReceived(string captureDate, string serialNumber, string modelNumber)
     {
-        var captureDate = DateTime.Now.ToString("ddMMyyyy");
-
         var capture = new DataCapture
         {
             SerialNumber  = serialNumber,

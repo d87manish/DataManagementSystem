@@ -35,13 +35,12 @@ public class ModbusSettings
     public string IpAddress            { get; set; } = "192.168.1.1";
     public int    Port                 { get; set; } = 502;
     public int    SlaveAddress         { get; set; } = 1;
-    public ushort TriggerRegister      { get; set; } = 100;
-    public ushort SerialNumberRegister { get; set; } = 101;
-    public int    SerialNumberRegisters{ get; set; } = 8;
-    public ushort ModelNumberRegister  { get; set; } = 109;
-    public int    ModelNumberRegisters { get; set; } = 4;
-    public int    PollIntervalMs       { get; set; } = 500;
-    public int    ConnectTimeoutMs     { get; set; } = 3000;
+    public ushort DataBlockRegister { get; set; } = 10;  // D10 — start of packed ASCII block
+    public int    DateLength        { get; set; } = 6;   // ddmmyy
+    public int    SerialLength      { get; set; } = 5;
+    public int    ModelLength       { get; set; } = 6;
+    public int    PollIntervalMs    { get; set; } = 500;
+    public int    ConnectTimeoutMs  { get; set; } = 3000;
 }
 
 public class ProjectProfile

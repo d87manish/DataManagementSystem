@@ -10,9 +10,9 @@ public class ModbusScanService : IModbusScanService
     private readonly ModbusSettings      _settings;
     private ModbusTcpClient?             _client;
     private System.Timers.Timer?         _timer;
-    private ushort                       _lastTriggerValue;
+    private string                        _lastSerial = string.Empty;
 
-    public event Action<string, string>? DataReceived;
+    public event Action<string, string, string>? DataReceived;
     public bool IsConnected { get; private set; }
 
     public ModbusScanService(ModbusSettings settings) => _settings = settings;
@@ -50,7 +50,7 @@ public class ModbusScanService : IModbusScanService
 
     public void StartPolling(int intervalMs = 500)
     {
-        _lastTriggerValue = 0;
+        _lastSerial = string.Empty;
         _timer = new System.Timers.Timer(intervalMs) { AutoReset = true };
         _timer.Elapsed += OnTimerElapsed;
         _timer.Start();
@@ -69,26 +69,33 @@ public class ModbusScanService : IModbusScanService
         {
             if (_client == null) return;
 
-            var triggerSpan = _client.ReadHoldingRegisters<ushort>(
-                (byte)_settings.SlaveAddress, _settings.TriggerRegister, 1);
-            var trigger = triggerSpan[0];
+            // D10-D18: packed ASCII block — ddmmyy (6) + serial (5) + model (6) = 17 chars in 9 registers
+            int totalChars     = _settings.DateLength + _settings.SerialLength + _settings.ModelLength;
+            int registerCount  = (totalChars + 1) / 2;
+            var block          = ReadAsciiBlock(_settings.DataBlockRegister, registerCount);
 
-            if (trigger == _lastTriggerValue || trigger == 0) return;
-            _lastTriggerValue = trigger;
+            if (block.Length < totalChars) return;
 
-            var serial = ReadString(_settings.SerialNumberRegister, _settings.SerialNumberRegisters);
-            var model  = ReadString(_settings.ModelNumberRegister,  _settings.ModelNumberRegisters);
+            var dateRaw = block.Substring(0, _settings.DateLength);
+            var serial  = block.Substring(_settings.DateLength, _settings.SerialLength).Trim();
+            var model   = block.Substring(_settings.DateLength + _settings.SerialLength, _settings.ModelLength).Trim();
 
-            if (string.IsNullOrWhiteSpace(serial)) return;
+            if (string.IsNullOrWhiteSpace(serial) || serial == _lastSerial) return;
+            _lastSerial = serial;
 
-            Logger.LogInfo($"Modbus data: serial={serial} model={model}", "ModbusScanService");
-            DataReceived?.Invoke(serial.Trim(), model.Trim());
+            // ddmmyy → ddMMyyyy
+            var captureDate = dateRaw.Length == 6
+                ? dateRaw[..4] + "20" + dateRaw[4..]
+                : DateTime.Now.ToString("ddMMyyyy");
+
+            Logger.LogInfo($"Modbus data: date={captureDate} serial={serial} model={model}", "ModbusScanService");
+            DataReceived?.Invoke(captureDate, serial, model);
         }
         catch (Exception ex) { Logger.LogError("Modbus poll error", ex, "ModbusScanService"); }
     }
 
-    // Each register holds 2 ASCII chars (high byte = first char, low byte = second char)
-    private string ReadString(ushort startAddress, int registerCount)
+    // Each Modbus register holds 2 ASCII chars: high byte = first char, low byte = second char
+    private string ReadAsciiBlock(ushort startAddress, int registerCount)
     {
         var regs = _client!.ReadHoldingRegisters<ushort>(
             (byte)_settings.SlaveAddress, startAddress, (ushort)registerCount);
