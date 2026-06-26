@@ -71,7 +71,7 @@ public class LicenseManager
             catch { data = null; }
             if (data == null) return Fail(LicenseStatus.Corrupt, "License payload could not be read.");
 
-            if (!data.MachineId.Equals(MachineId, StringComparison.OrdinalIgnoreCase))
+            if (data.MachineId != "*" && !data.MachineId.Equals(MachineId, StringComparison.OrdinalIgnoreCase))
                 return Fail(LicenseStatus.WrongMachine,
                     $"This license is locked to machine {data.MachineId}.\nThis machine ID is: {MachineId}");
 
