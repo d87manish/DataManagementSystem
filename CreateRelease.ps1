@@ -170,11 +170,14 @@ New-Item -ItemType Directory -Force -Path $ReleaseDir | Out-Null
 # Setup.exe
 Copy-Item $SetupExe.FullName (Join-Path $ReleaseDir 'Setup.exe')
 
-# LicenseKey.txt — key only, no trailing newline
+# UTF-8 without BOM - critical for LicenseKey.txt so the key reads cleanly
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+# LicenseKey.txt - key only, no trailing newline
 [System.IO.File]::WriteAllText(
     (Join-Path $ReleaseDir 'LicenseKey.txt'),
     $LicenseKey,
-    [System.Text.Encoding]::UTF8
+    $utf8NoBom
 )
 
 # ReleaseInfo.txt
@@ -192,19 +195,21 @@ $InfoLines = @(
 [System.IO.File]::WriteAllLines(
     (Join-Path $ReleaseDir 'ReleaseInfo.txt'),
     $InfoLines,
-    [System.Text.Encoding]::UTF8
+    $utf8NoBom
 )
 
-Write-Host '  Setup.exe      → copied' -ForegroundColor Green
-Write-Host '  LicenseKey.txt → written' -ForegroundColor Green
-Write-Host '  ReleaseInfo.txt→ written' -ForegroundColor Green
+Write-Host '  Setup.exe       : copied' -ForegroundColor Green
+Write-Host '  LicenseKey.txt  : written' -ForegroundColor Green
+Write-Host '  ReleaseInfo.txt : written' -ForegroundColor Green
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 8. SUCCESS SUMMARY
 # ─────────────────────────────────────────────────────────────────────────────
-Write-Host "`n" + ('=' * 70) -ForegroundColor Yellow
+$sep = '=' * 70
+Write-Host ''
+Write-Host $sep -ForegroundColor Yellow
 Write-Host ' RELEASE COMPLETE' -ForegroundColor Yellow
-Write-Host ('=' * 70) -ForegroundColor Yellow
+Write-Host $sep -ForegroundColor Yellow
 Write-Host "  Release folder : $ReleaseDir"
 Write-Host "  Installer      : Setup.exe ($([math]::Round($SetupExe.Length / 1MB, 1)) MB)"
 Write-Host "  SHA256         : $SetupHash"
@@ -217,4 +222,4 @@ Write-Host '    1. Run Setup.exe to install Data Management System.'
 Write-Host '    2. Launch the application.'
 Write-Host '    3. When the License Activation window appears, paste the key from LicenseKey.txt.'
 Write-Host '    4. Click Activate.'
-Write-Host ('=' * 70) -ForegroundColor Yellow
+Write-Host $sep -ForegroundColor Yellow
