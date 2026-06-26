@@ -122,6 +122,19 @@ var
   PD : String;
   AD : String;
 begin
+  // ── Remove old license so first launch always asks for the new key ──────────
+  if CurStep = ssInstall then
+  begin
+    PD := ExpandConstant('{commonappdata}\Braentech\DMS\license.lic');
+    if FileExists(PD) then
+    begin
+      DeleteFile(PD);
+      Log('Removed existing license.lic — user will be prompted on first launch.');
+    end;
+    Exit;
+  end;
+
+  // ── Seed appsettings.json on first install only ───────────────────────────
   if CurStep <> ssPostInstall then Exit;
   PD := ExpandConstant('{commonappdata}\Braentech\DMS\appsettings.json');
   AD := ExpandConstant('{app}\appsettings.json');
